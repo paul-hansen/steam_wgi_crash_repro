@@ -82,15 +82,24 @@ fn print_gamepads() {
 
     match gamepads.Size() {
         Ok(0) => println!("No Gamepads found"),
-        _ => {
-            // Exception happens on the below line when launched through steam
-            for controller in gamepads {
-                let name = match controller.DisplayName() {
-                    Ok(hstring) => hstring.to_string_lossy(),
-                    Err(_) => "unknown".to_string(),
-                };
-                println!("Found controller: {name}");
+        Ok(count) => {
+            // By using a good old for loop with an index instead of IVectorView's iterator
+            // implementation, it avoids triggering the exception.
+            for index in 0..count {
+                match gamepads.GetAt(index) {
+                    Ok(controller) => {
+                        let name = match controller.DisplayName() {
+                            Ok(hstring) => hstring.to_string_lossy(),
+                            Err(_) => "unknown".to_string(),
+                        };
+                        println!("Found controller: {name}");
+                    }
+                    Err(e) => println!("Error while getting controller at index {index}: {e}"),
+                }
             }
+        }
+        Err(e) => {
+            println!("Error while getting controller count {e}");
         }
     }
 }
