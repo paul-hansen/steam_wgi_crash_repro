@@ -4,7 +4,9 @@ use windows::{
     core::*, Win32::Foundation::*, Win32::Graphics::Gdi::ValidateRect,
     Win32::System::LibraryLoader::GetModuleHandleA, Win32::UI::WindowsAndMessaging::*,
 };
-
+// Most of this is taken from the create_window example in the Windows crate:
+// https://github.com/microsoft/windows-rs/blob/4726348167316b4624abbe57e0b09cd05f12e0d5/crates/samples/create_window/src/main.rs
+// See other code comments for differences.
 fn main() -> Result<()> {
     unsafe {
         let instance = GetModuleHandleA(None)?;
@@ -53,8 +55,12 @@ extern "system" fn wndproc(window: HWND, message: u32, wparam: WPARAM, lparam: L
     unsafe {
         match message {
             WM_PAINT => {
+                // Call our code that prints the controller names. The exception happens in here.
                 print_gamepads();
                 ValidateRect(window, None);
+                // The exception doesn't happen on the first frame because WGI always says there
+                // are no controllers the first time you ask. Request new frames so it fails
+                // without having to resize the window to get it to run again.
                 RedrawWindow(window, None, None, RDW_INVALIDATE);
                 LRESULT(0)
             }
@@ -77,6 +83,7 @@ fn print_gamepads() {
     match gamepads.Size() {
         Ok(0) => println!("No Gamepads found"),
         _ => {
+            // Exception happens on the below line when launched through steam
             for controller in gamepads {
                 let name = match controller.DisplayName() {
                     Ok(hstring) => hstring.to_string_lossy(),
